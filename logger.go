@@ -1,7 +1,9 @@
 package httpx
 
 import (
+	"bufio"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 )
@@ -52,3 +54,12 @@ func (s *statusRecorder) Write(b []byte) (int, error) {
 
 // Unwrap lets http.ResponseController reach Flush, Hijack, etc.
 func (s *statusRecorder) Unwrap() http.ResponseWriter { return s.ResponseWriter }
+
+// Flush and Hijack are also implemented directly because many wrappers
+// (chi's Compress, websocket libraries) type-assert instead of using
+// http.ResponseController, and would otherwise fail behind RequestLogger.
+func (s *statusRecorder) Flush() { _ = http.NewResponseController(s.ResponseWriter).Flush() }
+
+func (s *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return http.NewResponseController(s.ResponseWriter).Hijack()
+}

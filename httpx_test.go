@@ -303,3 +303,32 @@ func TestRequestLogger(t *testing.T) {
 		t.Fatalf("%v", rec)
 	}
 }
+
+func TestRequestLoggerKeepsHijackAndFlush(t *testing.T) {
+	var hijacked, flushed bool
+	h := RequestLogger(slog.New(slog.DiscardHandler))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, flushed = w.(http.Flusher)
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			return
+		}
+		conn, _, err := hj.Hijack()
+		if err != nil {
+			return
+		}
+		hijacked = true
+		conn.Write([]byte("HTTP/1.1 204 No Content\r\n\r\n"))
+		conn.Close()
+	}))
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if !flushed || !hijacked {
+		t.Fatalf("flushed=%v hijacked=%v, want both true", flushed, hijacked)
+	}
+}
