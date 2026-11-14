@@ -53,6 +53,11 @@ func DecodeJSONBodyLimit(w http.ResponseWriter, r *http.Request, dst any, maxByt
 		return decodeError(err)
 	}
 	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		// Padding after the value can push the body over the cap.
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			return decodeError(err)
+		}
 		return malformed(http.StatusBadRequest, "Request body must only contain a single JSON value")
 	}
 	return nil

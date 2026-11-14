@@ -22,7 +22,7 @@ func RequestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 				slog.Int("status", rec.status),
 				slog.Int("bytes", rec.bytes),
 				slog.Duration("duration", time.Since(start)),
-				slog.String("remote_ip", ClientIP(r)),
+				slog.String("remote_ip", remoteHost(r)),
 				slog.String("user_agent", r.UserAgent()),
 			)
 		})
