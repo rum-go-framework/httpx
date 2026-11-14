@@ -150,8 +150,10 @@ func (rl *RateLimiter) Middleware(key func(*http.Request) string) func(http.Hand
 // ClientIP returns the rate-limit key for r.RemoteAddr: the IPv4 address, or
 // for IPv6 its /64 prefix, since a single host normally controls a whole /64
 // and per-address keys would be free to mint. IPv4-mapped IPv6 addresses count
-// as IPv4. It does not trust forwarding headers: install chi's RealIP first if
-// you sit behind a proxy.
+// as IPv4. It does not trust forwarding headers. Behind a proxy, rewrite
+// RemoteAddr from the X-Forwarded-For entry appended by your outermost trusted
+// proxy (counting from the right) before this runs. Avoid chi's RealIP here:
+// it trusts the leftmost entry, which the client controls.
 func ClientIP(r *http.Request) string {
 	host := remoteHost(r)
 	addr, err := netip.ParseAddr(host)
